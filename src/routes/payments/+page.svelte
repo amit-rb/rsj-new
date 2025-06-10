@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { currentUser } from '$lib/stores/auth';
-	import { CreditCard, Download, Eye, Calendar, DollarSign, CheckCircle, Clock, AlertCircle } from 'lucide-svelte';
+	import { CreditCard, Download, Eye, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-svelte';
 
 	function getInitials(name: string): string {
 		return name
