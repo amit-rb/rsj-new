@@ -1,8 +1,106 @@
 <script lang="ts">
 	import { currentUser } from '$lib/stores/auth';
 	import { CreditCard, Download, Eye, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-svelte';
+	import type { PageData } from './$types';
+	import type { Payment } from '$lib/api/paymentService';
+
+	export let data: PageData;
+
+	// Extract payment history from the data
+	$: paymentHistory = data.paymentHistory;
+	$: error = data.error;
+
+	// Combine admission payments and course fees into a single transactions array
+	$: transactions = paymentHistory ? [
+		...formatPayments(paymentHistory.admissionPayments, 'Admission Payment'),
+		...formatPayments(paymentHistory.courseFees, 'Course Fee')
+	] : [];
+
+	// Format payments from the API into a consistent format for display
+	function formatPayments(payments: Payment[], defaultDescription: string) {
+		return payments.map(payment => ({
+			id: payment._id,
+			date: new Date(payment.payment_time).toISOString().split('T')[0],
+			description: getPaymentDescription(payment, defaultDescription),
+			amount: payment.payment_amount,
+			status: getPaymentStatus(payment.payment_status),
+			method: getPaymentMethod(payment),
+			receiptUrl: '#', // API doesn't provide receipt URLs yet
+			rawPayment: payment // Keep the raw payment data for reference
+		}));
+	}
+
+	// Get a human-readable description for the payment
+	function getPaymentDescription(payment: Payment, defaultDescription: string) {
+		// You could extract more meaningful descriptions from the payment data if available
+		return defaultDescription;
+	}
+
+	// Map API payment status to our status values
+	function getPaymentStatus(status: string) {
+		switch (status.toUpperCase()) {
+			case 'SUCCESS':
+				return 'completed';
+			case 'PENDING':
+				return 'pending';
+			case 'FAILED':
+				return 'failed';
+			default:
+				return 'pending';
+		}
+	}
+
+	// Get a human-readable payment method
+	function getPaymentMethod(payment: Payment) {
+		if (payment.payment_method.card) {
+			return `${payment.payment_method.card.card_network} ****${payment.payment_method.card.card_number.slice(-4)}`;
+		} else if (payment.payment_method.netbanking) {
+			return `${payment.payment_method.netbanking.netbanking_bank_name}`;
+		} else {
+			return payment.payment_group || 'Unknown';
+		}
+	}
+
+	// Extract payment methods from transactions
+	$: paymentMethods = transactions
+		.filter(t => t.method && t.method !== 'Auto-pay scheduled')
+		.reduce((methods, t) => {
+			// Check if this method is already in our list
+			const existingMethod = methods.find(m => m.last4 === t.method.slice(-4) && m.brand === t.method.split(' ')[0]);
+			if (!existingMethod && t.method.includes('****')) {
+				const [brand, cardNumber] = t.method.split(' ');
+				methods.push({
+					id: methods.length + 1 + '',
+					type: 'card',
+					last4: cardNumber.slice(-4),
+					brand,
+					expiryMonth: 12, // We don't have this info from the API
+					expiryYear: new Date().getFullYear() + 1, // We don't have this info from the API
+					isDefault: methods.length === 0 // First one is default
+				});
+			}
+			return methods;
+		}, [] as Array<{
+			id: string;
+			type: string;
+			last4: string;
+			brand: string;
+			expiryMonth: number;
+			expiryYear: number;
+			isDefault: boolean;
+		}>);
+
+	// For now, we don't have upcoming payments from the API, so we'll use an empty array
+	const upcomingPayments: Array<{
+		id: string;
+		dueDate: string;
+		description: string;
+		amount: number;
+		status: string;
+	}> = [];
 
 	function getInitials(name: string): string {
+		if (!name) return '';
 		return name
 			.split(' ')
 			.map(word => word.charAt(0))
@@ -10,75 +108,6 @@
 			.toUpperCase()
 			.slice(0, 2);
 	}
-
-	// Mock payment data
-	const paymentMethods = [
-		{
-			id: '1',
-			type: 'card',
-			last4: '4242',
-			brand: 'Visa',
-			expiryMonth: 12,
-			expiryYear: 2025,
-			isDefault: true
-		},
-		{
-			id: '2',
-			type: 'card',
-			last4: '5555',
-			brand: 'Mastercard',
-			expiryMonth: 8,
-			expiryYear: 2026,
-			isDefault: false
-		}
-	];
-
-	const transactions = [
-		{
-			id: 'TXN001',
-			date: '2024-01-15',
-			description: 'Digital Journalism Course - Semester 1',
-			amount: 2500,
-			status: 'completed',
-			method: 'Visa ****4242',
-			receiptUrl: '#'
-		},
-		{
-			id: 'TXN002',
-			date: '2024-01-01',
-			description: 'Registration Fee',
-			amount: 500,
-			status: 'completed',
-			method: 'Visa ****4242',
-			receiptUrl: '#'
-		},
-		{
-			id: 'TXN003',
-			date: '2024-02-15',
-			description: 'Digital Journalism Course - Semester 2',
-			amount: 2500,
-			status: 'pending',
-			method: 'Auto-pay scheduled',
-			receiptUrl: null
-		}
-	];
-
-	const upcomingPayments = [
-		{
-			id: 'UP001',
-			dueDate: '2024-02-15',
-			description: 'Digital Journalism Course - Semester 2',
-			amount: 2500,
-			status: 'due'
-		},
-		{
-			id: 'UP002',
-			dueDate: '2024-03-15',
-			description: 'Advanced Reporting Techniques',
-			amount: 1800,
-			status: 'upcoming'
-		}
-	];
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -144,7 +173,7 @@
 						<p class="text-sm text-gray-600">of Journalism</p>
 					</div>
 				</div>
-				
+
 				<nav class="hidden md:flex items-center space-x-8">
 					<span class="text-purple-600 font-medium">Payment Overview</span>
 					<div class="flex items-center space-x-2">
@@ -208,7 +237,7 @@
 						</svg>
 						<span>Grades</span>
 					</a>
-					
+
 					<div class="pt-4 mt-4 border-t border-gray-200">
 						<p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Payments & Billing</p>
 						<a href="/payments" class="flex items-center space-x-3 px-3 py-2 text-purple-600 bg-purple-50 rounded-lg">

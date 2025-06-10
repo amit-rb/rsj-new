@@ -15,11 +15,14 @@ export interface User {
 export const currentUser = writable<User | null>(null);
 export const authLoading = writable(false);
 export const isAuthenticated = writable(false);
+export const authError = writable<string | null>(null);
 
 // Initialize auth state from localStorage
 if (browser) {
 	const storedUser = localStorage.getItem('currentUser');
-	if (storedUser) {
+	const token = localStorage.getItem('authToken');
+
+	if (storedUser && token) {
 		try {
 			const user = JSON.parse(storedUser);
 			currentUser.set(user);
@@ -27,6 +30,7 @@ if (browser) {
 		} catch (error) {
 			console.error('Error parsing stored user:', error);
 			localStorage.removeItem('currentUser');
+			localStorage.removeItem('authToken');
 		}
 	}
 }
@@ -45,26 +49,25 @@ export function logout() {
 	if (browser) {
 		localStorage.removeItem('currentUser');
 		localStorage.removeItem('profileData');
+		localStorage.removeItem('authToken');
+	}
+
+	// Redirect to login page if in browser
+	if (browser) {
+		window.location.href = '/login';
 	}
 }
 
+// Note: The actual login functionality is now handled by the authService
+// This function is kept for backward compatibility but should be deprecated
 export function login(email: string) {
+	console.warn('This login function is deprecated. Use authService.requestOtp and authService.verifyOtp instead.');
 	authLoading.set(true);
-	
-	// Simulate API call
+	authError.set(null);
+
+	// This is just a placeholder that will be removed when all code is updated to use authService
 	setTimeout(() => {
-		const mockUser: User = {
-			id: '1',
-			name: 'Sarah Johnson',
-			email: email,
-			avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1',
-			phone: '+1 (555) 123-4567',
-			joinDate: '2024-01-01',
-			coursesCompleted: 1,
-			totalCourses: 2
-		};
-		
-		updateUser(mockUser);
 		authLoading.set(false);
-	}, 2000);
+		authError.set('This login method is deprecated. Please use the OTP-based authentication.');
+	}, 500);
 }
