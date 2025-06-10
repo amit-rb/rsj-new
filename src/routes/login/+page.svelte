@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { authLoading, isAuthenticated, authError } from '$lib/stores/auth';
 	import { authService } from '$lib/api/authService';
+	import { config } from '$lib/config/env';
 	import { onMount } from 'svelte';
 
 	let email = '';
@@ -227,7 +228,7 @@
 
 			<!-- API Endpoint Info -->
 			<div class="text-center text-sm text-gray-500 border-t pt-4">
-				API Endpoint: {import.meta.env.DEV ? 'https://gke-api.republicschoolofjournalism.com' : 'https://gke-api.republicschoolofjournalism.com'}
+				API Endpoint: {config.apiUrl}
 			</div>
 
 			<!-- Contact Link -->
