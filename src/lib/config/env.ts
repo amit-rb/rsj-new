@@ -4,7 +4,7 @@
  */
 
 // Base API URL based on environment
-const DEV_API_URL = 'http://localhost:3002';
+const DEV_API_URL = 'https://gke-api.republicschoolofjournalism.com'; // Updated to use production URL for development
 const PROD_API_URL = 'https://gke-api.republicschoolofjournalism.com'; // Update with production URL when available
 
 // Determine if we're in development or production
