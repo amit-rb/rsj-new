@@ -1,17 +1,15 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { currentUser, isAuthenticated, logout } from '$lib/stores/auth';
-  import { Menu, X, User, LogOut, Bell } from 'lucide-svelte';
+  import { Bell, Search, ChevronDown } from 'lucide-svelte';
+  import { goto } from '$app/navigation';
 
-  let isMenuOpen = false;
-
-  function toggleMenu() {
-    isMenuOpen = !isMenuOpen;
-  }
+  let isProfileDropdownOpen = false;
+  let searchQuery = '';
 
   function handleLogout() {
     logout();
-    window.location.href = '/login';
+    goto('/login');
   }
 
   function getInitials(name: string): string {
@@ -23,154 +21,132 @@
       .toUpperCase()
       .slice(0, 2);
   }
+
+  function toggleProfileDropdown() {
+    isProfileDropdownOpen = !isProfileDropdownOpen;
+  }
+
+  // Close dropdown when clicking outside
+  function handleClickOutside(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.profile-dropdown')) {
+      isProfileDropdownOpen = false;
+    }
+  }
+
+  // Get current page title
+  $: pageTitle = (() => {
+    const path = $page.url.pathname;
+    if (path === '/profile') return 'Profile';
+    if (path === '/payments') return 'Payments';
+    if (path === '/courses') return 'Courses';
+    if (path === '/assignments') return 'Assignments';
+    if (path === '/lectures') return 'Lectures';
+    if (path === '/attendance') return 'Attendance';
+    if (path === '/grades') return 'Grades';
+    if (path === '/calendar') return 'Calendar';
+    if (path === '/chat') return 'Chat';
+    if (path === '/doubts') return 'Doubts';
+    if (path === '/feedback') return 'Feedback';
+    if (path === '/settings') return 'Settings';
+    return 'Dashboard';
+  })();
 </script>
 
-<nav class="bg-white shadow-md">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-16">
-      <div class="flex">
-        <div class="flex-shrink-0 flex items-center">
-          <a href="/" class="text-xl font-bold text-blue-600">RSJ</a>
+<svelte:window on:click={handleClickOutside} />
+
+{#if $isAuthenticated && $currentUser}
+  <nav class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <!-- Left side - Logo and Page Title -->
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-sm">R</span>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-gray-900">Republic School</h1>
+            <p class="text-xs text-gray-600">of Journalism</p>
+          </div>
         </div>
-        <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-          <a 
-            href="/" 
-            class="{$page.url.pathname === '/' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-          >
-            Dashboard
-          </a>
-          <a 
-            href="/profile" 
-            class="{$page.url.pathname === '/profile' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-          >
-            Profile
-          </a>
-          <a 
-            href="/payments" 
-            class="{$page.url.pathname === '/payments' ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-          >
-            Payments
-          </a>
+        
+        <div class="text-2xl font-bold text-gray-900">
+          {pageTitle}
         </div>
       </div>
-      <div class="hidden sm:ml-6 sm:flex sm:items-center">
-        <button class="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          <span class="sr-only">View notifications</span>
+
+      <!-- Center - Search Bar -->
+      <div class="flex-1 max-w-lg mx-8">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search class="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            bind:value={searchQuery}
+            placeholder="Search courses, assignments..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-gray-50"
+          />
+        </div>
+      </div>
+
+      <!-- Right side - Notifications and Profile -->
+      <div class="flex items-center space-x-4">
+        <!-- Notifications -->
+        <button class="relative p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg">
           <Bell class="h-6 w-6" />
+          <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
         </button>
 
-        <!-- Profile dropdown -->
-        {#if $isAuthenticated && $currentUser}
-          <div class="ml-3 relative">
-            <div>
-              <button type="button" class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
-                <span class="sr-only">Open user menu</span>
-                {#if $currentUser.avatar}
-                  <img class="h-8 w-8 rounded-full" src={$currentUser.avatar} alt="User avatar" />
-                {:else}
-                  <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                    {getInitials($currentUser.name)}
-                  </div>
-                {/if}
+        <!-- Profile Dropdown -->
+        <div class="relative profile-dropdown">
+          <button
+            on:click={toggleProfileDropdown}
+            class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            {#if $currentUser.avatar}
+              <img src={$currentUser.avatar} alt="Profile" class="w-8 h-8 rounded-full object-cover" />
+            {:else}
+              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <span class="text-purple-600 text-sm font-bold">
+                  {getInitials($currentUser.name)}
+                </span>
+              </div>
+            {/if}
+            <div class="text-left hidden sm:block">
+              <p class="text-sm font-medium text-gray-900">{$currentUser.name}</p>
+              <p class="text-xs text-gray-600">{$currentUser.email}</p>
+            </div>
+            <ChevronDown class="h-4 w-4 text-gray-400" />
+          </button>
+
+          {#if isProfileDropdownOpen}
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+              <a
+                href="/profile"
+                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                on:click={() => isProfileDropdownOpen = false}
+              >
+                View Profile
+              </a>
+              <a
+                href="/settings"
+                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                on:click={() => isProfileDropdownOpen = false}
+              >
+                Settings
+              </a>
+              <hr class="my-1" />
+              <button
+                on:click={handleLogout}
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Sign Out
               </button>
             </div>
-          </div>
-        {:else}
-          <a href="/login" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Login
-          </a>
-        {/if}
-      </div>
-      <div class="-mr-2 flex items-center sm:hidden">
-        <!-- Mobile menu button -->
-        <button 
-          on:click={toggleMenu}
-          type="button" 
-          class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" 
-          aria-controls="mobile-menu" 
-          aria-expanded="false"
-        >
-          <span class="sr-only">Open main menu</span>
-          {#if isMenuOpen}
-            <X class="block h-6 w-6" />
-          {:else}
-            <Menu class="block h-6 w-6" />
           {/if}
-        </button>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Mobile menu, show/hide based on menu state. -->
-  {#if isMenuOpen}
-    <div class="sm:hidden" id="mobile-menu">
-      <div class="pt-2 pb-3 space-y-1">
-        <a 
-          href="/" 
-          class="{$page.url.pathname === '/' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-        >
-          Dashboard
-        </a>
-        <a 
-          href="/profile" 
-          class="{$page.url.pathname === '/profile' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-        >
-          Profile
-        </a>
-        <a 
-          href="/payments" 
-          class="{$page.url.pathname === '/payments' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-        >
-          Payments
-        </a>
-      </div>
-      {#if $isAuthenticated && $currentUser}
-        <div class="pt-4 pb-3 border-t border-gray-200">
-          <div class="flex items-center px-4">
-            <div class="flex-shrink-0">
-              {#if $currentUser.avatar}
-                <img class="h-10 w-10 rounded-full" src={$currentUser.avatar} alt="User avatar" />
-              {:else}
-                <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                  {getInitials($currentUser.name)}
-                </div>
-              {/if}
-            </div>
-            <div class="ml-3">
-              <div class="text-base font-medium text-gray-800">{$currentUser.name}</div>
-              <div class="text-sm font-medium text-gray-500">{$currentUser.email}</div>
-            </div>
-          </div>
-          <div class="mt-3 space-y-1">
-            <a 
-              href="/profile" 
-              class="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-            >
-              <div class="flex items-center">
-                <User class="mr-3 h-5 w-5 text-gray-400" />
-                Your Profile
-              </div>
-            </a>
-            <button 
-              on:click={handleLogout}
-              class="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-            >
-              <div class="flex items-center">
-                <LogOut class="mr-3 h-5 w-5 text-gray-400" />
-                Sign out
-              </div>
-            </button>
-          </div>
-        </div>
-      {:else}
-        <div class="pt-4 pb-3 border-t border-gray-200">
-          <div class="flex items-center justify-center">
-            <a href="/login" class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              Login
-            </a>
-          </div>
-        </div>
-      {/if}
-    </div>
-  {/if}
-</nav>
+  </nav>
+{/if}
